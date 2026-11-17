@@ -12,6 +12,8 @@ public class Mensagens {
     public static final ObjectMapper JSON = new ObjectMapper();
     private static final ObjectMapper BINARIO = new ObjectMapper(new MessagePackFactory());
     private final String nome;
+    private long logico;
+    private long ajuste = Long.parseLong(System.getenv().getOrDefault("DESVIO_MS", "0"));
 
     public Mensagens(String nome) {
         this.nome = nome;
@@ -22,7 +24,17 @@ public class Mensagens {
     }
 
     public synchronized ObjectNode preparar(ObjectNode mensagem) {
-        return mensagem.deepCopy().put("origem", nome).put("timestamp", System.currentTimeMillis());
+        return mensagem.deepCopy().put("origem", nome).put("timestamp", agora()).put("logico", ++logico);
+    }
+
+    public synchronized long agora() {
+        return System.currentTimeMillis() + ajuste;
+    }
+
+    public synchronized void ajustar(long hora) {
+        long diferenca = hora - agora();
+        ajuste += diferenca;
+        System.out.println("[" + nome + "] Ajuste do relógio: " + diferenca + " ms");
     }
 
     public synchronized byte[] codificar(ObjectNode mensagem) throws IOException {
@@ -35,6 +47,7 @@ public class Mensagens {
         if (!(mensagem instanceof ObjectNode objeto)) {
             throw new IOException("A mensagem deve ser um mapa MessagePack");
         }
+        logico = Math.max(logico, objeto.path("logico").asLong());
         System.out.println("[" + nome + "] RECEBIMENTO " + System.currentTimeMillis() + " " + objeto);
         return objeto;
     }

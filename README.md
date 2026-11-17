@@ -41,3 +41,13 @@ Cada publicação possui dois frames: o nome do canal terminado em byte zero e a
 A cada rodada, o bot cria um canal se encontrar menos de cinco e assina mais um canal aleatório se tiver menos de três inscrições. Depois escolhe um canal, envia dez mensagens com intervalo de um segundo e consulta o histórico. Se o canal ainda não existir no servidor que recebeu o pedido, tenta criá-lo. Até a parte 5, os históricos e canais continuam locais a cada servidor.
 
 O pedido `historico`, com o campo `canal`, retorna a lista `publicacoes` ordenada por timestamp e identificador. PUB/SUB não confirma entrega: uma inscrição recente pode perder publicações, que continuam disponíveis no histórico persistido. A resposta `OK` confirma gravação e envio ao socket PUB, não o recebimento por todos os assinantes.
+
+## Parte 3
+
+Todas as mensagens passam a conter `logico`. O contador começa em zero, aumenta antes de cada envio e recebe o máximo entre o valor local e o recebido, conforme a regra do enunciado. Reenvios usam o mesmo identificador de operação e novos timestamps e contadores. Broker e proxy apenas encaminham os frames.
+
+A referência atende em REP na porta 5559. `registrar` e `heartbeat` recebem o nome em `origem` e o endereço do servidor em `endereco`; retornam `rank` e `hora`. `servidores` retorna os nomes, ranks e endereços ativos. Os ranks são únicos por nome e ficam em `dados/referencia/ranks.json`, inclusive após reiniciar a referência.
+
+O servidor manda heartbeat a cada dez pedidos de clientes. Também manda a cada cinco segundos para não ser removido quando os bots estiverem ociosos. A referência remove da lista ativa quem ficar trinta segundos sem contato. Os intervalos usam relógio monotônico, para que os ajustes físicos não alterem a detecção de falha.
+
+O relógio físico é representado por um deslocamento sobre a hora do sistema; não exige permissão para alterar o relógio do container. Na resposta do heartbeat, o servidor usa a hora da referência mais metade do tempo da requisição. O Compose começa os servidores com desvios de -3000 e +4000 ms para mostrar o ajuste nos logs.

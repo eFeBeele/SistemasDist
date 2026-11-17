@@ -61,6 +61,10 @@ public class Servidor {
             socket.connect(System.getenv().getOrDefault("BROKER", "tcp://broker:5556"));
             publicador.setLinger(0);
             publicador.connect(System.getenv().getOrDefault("PUBLICADOR", "tcp://proxy:5557"));
+            Coordenacao coordenacao = new Coordenacao(contexto, mensagens, nome);
+            Thread tarefa = new Thread(coordenacao, "coordenacao");
+            tarefa.setDaemon(true);
+            tarefa.start();
             while (!Thread.currentThread().isInterrupted()) {
                 byte[] bytes = socket.recv();
                 if (bytes == null) {
@@ -80,6 +84,7 @@ public class Servidor {
                     continue;
                 }
                 ObjectNode registro = dados.encontrar(pedido.path("id").asText());
+                coordenacao.recebeuCliente();
                 ObjectNode resposta;
                 if (registro != null) {
                     resposta = mensagens.preparar((ObjectNode) registro.path("resposta"));

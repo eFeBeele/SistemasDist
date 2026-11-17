@@ -1,4 +1,11 @@
 services:
+  referencia:
+    build:
+      context: .
+      dockerfile: python/Dockerfile
+    command: ["python", "referencia.py"]
+    volumes:
+      - ./dados/referencia:/dados
   proxy:
     build:
       context: .
@@ -15,22 +22,26 @@ services:
       dockerfile: servidor/Dockerfile
     environment:
       NOME: servidor-1
+      DESVIO_MS: "-3000"
     volumes:
       - ./dados/servidor-1:/dados
     depends_on:
       - broker
       - proxy
+      - referencia
   servidor-2:
     build:
       context: .
       dockerfile: servidor/Dockerfile
     environment:
       NOME: servidor-2
+      DESVIO_MS: "4000"
     volumes:
       - ./dados/servidor-2:/dados
     depends_on:
       - broker
       - proxy
+      - referencia
   bot-1:
     build:
       context: .

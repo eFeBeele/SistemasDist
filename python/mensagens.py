@@ -9,12 +9,15 @@ import zmq
 class Mensagens:
     def __init__(self, nome):
         self.nome = nome
+        self.logico = 0
 
     def preparar(self, mensagem):
         mensagem = dict(mensagem)
         mensagem.setdefault("id", str(uuid.uuid4()))
         mensagem["origem"] = self.nome
         mensagem["timestamp"] = time.time_ns() // 1_000_000
+        self.logico += 1
+        mensagem["logico"] = self.logico
         return mensagem
 
     def enviar(self, socket, mensagem):
@@ -28,6 +31,7 @@ class Mensagens:
         return mensagem
 
     def registrar(self, mensagem):
+        self.logico = max(self.logico, mensagem.get("logico", 0))
         agora = time.time_ns() // 1_000_000
         print(f"[{self.nome}] RECEBIMENTO {agora} {json.dumps(mensagem, ensure_ascii=False)}", flush=True)
 
