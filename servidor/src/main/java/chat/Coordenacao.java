@@ -111,7 +111,7 @@ public class Coordenacao implements Runnable {
                 } catch (IOException | RuntimeException erro) {
                     resposta = Mensagens.nova("resposta").put("status", "MENSAGEM_INVALIDA");
                 }
-                socket.send(mensagens.codificar(mensagens.preparar(resposta)));
+                mensagens.enviar(socket, resposta);
             }
         } catch (IOException | RuntimeException erro) {
             System.out.println("[" + nome + "] Atendimento entre servidores encerrado: " + erro.getMessage());
@@ -120,8 +120,7 @@ public class Coordenacao implements Runnable {
 
     private void anunciar(ZMQ.Socket publicador) throws IOException {
         publicador.sendMore("servers");
-        publicador.send(mensagens.codificar(mensagens.preparar(Mensagens.nova("coordenador")
-                .put("nome", nome).put("rank", rank))));
+        mensagens.enviar(publicador, Mensagens.nova("coordenador").put("nome", nome).put("rank", rank));
     }
 
     private void eleger(ZMQ.Socket publicador) throws IOException {
