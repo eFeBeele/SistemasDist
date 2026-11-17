@@ -16,6 +16,7 @@ import java.util.TreeSet;
 
 public class Armazenamento {
     private final Map<String, ObjectNode> registros = new LinkedHashMap<>();
+    private final String sessao = java.util.UUID.randomUUID().toString();
     private final RandomAccessFile arquivo;
 
     public Armazenamento(String pasta) throws IOException {
@@ -50,8 +51,11 @@ public class Armazenamento {
     }
 
     public synchronized ObjectNode encontrar(String id) {
-        ObjectNode registro = registros.get(id);
-        return registro == null ? null : registro.deepCopy();
+        return registros.values().stream()
+                .filter(r -> r.path("pedido").path("id").asText().equals(id))
+                .min(java.util.Comparator.comparing((ObjectNode r) -> !r.path("resposta").path("status").asText().equals("OK"))
+                        .thenComparing(r -> r.path("id").asText()))
+                .map(ObjectNode::deepCopy).orElse(null);
     }
 
     public synchronized List<String> canais() {
@@ -67,18 +71,36 @@ public class Armazenamento {
     }
 
     public synchronized List<JsonNode> historico(String canal) {
-        List<JsonNode> publicacoes = new ArrayList<>();
+        Map<String, ObjectNode> unicos = new LinkedHashMap<>();
         for (ObjectNode registro : registros.values()) {
             JsonNode pedido = registro.path("pedido");
             if (pedido.path("tipo").asText().equals("publicar")
                     && pedido.path("canal").asText().equals(canal)
                     && registro.path("resposta").path("status").asText().equals("OK")) {
-                publicacoes.add(pedido.deepCopy());
+                String id = pedido.path("id").asText();
+                ObjectNode anterior = unicos.get(id);
+                if (anterior == null || registro.path("id").asText().compareTo(anterior.path("id").asText()) < 0) {
+                    unicos.put(id, registro);
+                }
             }
         }
+        List<JsonNode> publicacoes = new ArrayList<>();
+        unicos.values().forEach(r -> publicacoes.add(r.has("publicacao")
+                ? r.path("publicacao").deepCopy() : r.path("pedido").deepCopy()));
         publicacoes.sort(java.util.Comparator
                 .comparingLong((JsonNode p) -> p.path("timestamp").asLong())
                 .thenComparing(p -> p.path("id").asText()));
         return publicacoes;
+    }
+
+    public synchronized ObjectNode pagina(ObjectNode pedido) {
+        int inicio = sessao.equals(pedido.path("sessao").asText()) ? pedido.path("cursor").asInt() : 0;
+        inicio = Math.max(0, Math.min(inicio, registros.size()));
+        List<ObjectNode> todos = new ArrayList<>(registros.values());
+        int fim = Math.min(inicio + 100, todos.size());
+        ObjectNode pagina = Mensagens.nova("resposta").put("pedido_id", pedido.path("id").asText())
+                .put("status", "OK").put("sessao", sessao).put("cursor", fim).put("total", todos.size());
+        pagina.set("registros", Mensagens.JSON.valueToTree(todos.subList(inicio, fim)));
+        return pagina;
     }
 }

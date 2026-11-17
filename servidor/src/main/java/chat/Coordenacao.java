@@ -18,6 +18,7 @@ public class Coordenacao implements Runnable {
     private final ZContext contexto;
     private final Mensagens mensagens;
     private final String nome;
+    private final Armazenamento dados;
     private final String referencia = System.getenv().getOrDefault("REFERENCIA", "tcp://referencia:5559");
     private final AtomicLong recebidas = new AtomicLong();
     private final AtomicBoolean eleicao = new AtomicBoolean(true);
@@ -27,10 +28,11 @@ public class Coordenacao implements Runnable {
     private List<JsonNode> servidores = List.of();
     private long ultimaEleicao;
 
-    public Coordenacao(ZContext contexto, Mensagens mensagens, String nome) {
+    public Coordenacao(ZContext contexto, Mensagens mensagens, String nome, Armazenamento dados) {
         this.contexto = contexto;
         this.mensagens = mensagens;
         this.nome = nome;
+        this.dados = dados;
     }
 
     public void recebeuCliente() {
@@ -74,6 +76,9 @@ public class Coordenacao implements Runnable {
     }
 
     private ObjectNode atender(ObjectNode pedido) {
+        if (pedido.path("tipo").asText().equals("registros")) {
+            return dados.pagina(pedido);
+        }
         ObjectNode resposta = Mensagens.nova("resposta").put("pedido_id", pedido.path("id").asText())
                 .put("status", "OK").put("rank", rank).put("coordenador", coordenador);
         switch (pedido.path("tipo").asText()) {

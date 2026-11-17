@@ -61,10 +61,13 @@ public class Servidor {
             socket.connect(System.getenv().getOrDefault("BROKER", "tcp://broker:5556"));
             publicador.setLinger(0);
             publicador.connect(System.getenv().getOrDefault("PUBLICADOR", "tcp://proxy:5557"));
-            Coordenacao coordenacao = new Coordenacao(contexto, mensagens, nome);
+            Coordenacao coordenacao = new Coordenacao(contexto, mensagens, nome, dados);
             Thread tarefa = new Thread(coordenacao, "coordenacao");
             tarefa.setDaemon(true);
             tarefa.start();
+            Thread replica = new Thread(new Replicacao(contexto, mensagens, nome, dados), "replicacao");
+            replica.setDaemon(true);
+            replica.start();
             while (!Thread.currentThread().isInterrupted()) {
                 byte[] bytes = socket.recv();
                 if (bytes == null) {
@@ -96,9 +99,12 @@ public class Servidor {
                         publicacao = mensagens.preparar(pedido.deepCopy().put("tipo", "publicacao"));
                     }
                     resposta = mensagens.preparar(resposta);
-                    registro = Mensagens.JSON.createObjectNode().put("id", pedido.path("id").asText());
+                    registro = Mensagens.JSON.createObjectNode().put("id", java.util.UUID.randomUUID().toString());
                     registro.set("pedido", pedido);
                     registro.set("resposta", resposta);
+                    if (publicacao != null) {
+                        registro.set("publicacao", publicacao);
+                    }
                     dados.guardar(registro);
                     if (publicacao != null) {
                         publicador.sendMore(pedido.path("canal").asText() + "\u0000");
