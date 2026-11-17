@@ -87,3 +87,11 @@ Ele usa a imagem do servidor, entra na rede do Compose e cadastra seu próprio e
 ## Entregas
 
 As branches `parte1`, `parte2`, `parte3`, `parte4` e `parte5` guardam o código de cada entrega. A `main` acompanha a versão final. Cada branch tem seu próprio Compose e README, e pode ser executada separadamente.
+
+| Etapa | Branch | Código para o Moodle |
+|---|---|---|
+| Login e canais | [parte1](https://github.com/eFeBeele/SistemasDist/tree/parte1) | [ZIP](https://github.com/eFeBeele/SistemasDist/archive/refs/heads/parte1.zip) |
+| Publicação | [parte2](https://github.com/eFeBeele/SistemasDist/tree/parte2) | [ZIP](https://github.com/eFeBeele/SistemasDist/archive/refs/heads/parte2.zip) |
+| Relógios e heartbeat | [parte3](https://github.com/eFeBeele/SistemasDist/tree/parte3) | [ZIP](https://github.com/eFeBeele/SistemasDist/archive/refs/heads/parte3.zip) |
+| Eleição | [parte4](https://github.com/eFeBeele/SistemasDist/tree/parte4) | [ZIP](https://github.com/eFeBeele/SistemasDist/archive/refs/heads/parte4.zip) |
+| Replicação | [parte5](https://github.com/eFeBeele/SistemasDist/tree/parte5) | [ZIP](https://github.com/eFeBeele/SistemasDist/archive/refs/heads/parte5.zip) |
