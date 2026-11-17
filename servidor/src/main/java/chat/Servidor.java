@@ -77,41 +77,41 @@ public class Servidor {
                 try {
                     pedido = mensagens.receber(bytes);
                 } catch (IOException erro) {
-                    socket.send(mensagens.codificar(mensagens.preparar(
-                            Mensagens.nova("resposta").put("status", "MENSAGEM_INVALIDA"))));
+                    mensagens.enviar(socket, Mensagens.nova("resposta").put("status", "MENSAGEM_INVALIDA"));
                     continue;
                 }
                 if (pedido.path("id").asText().isBlank() || !pedido.path("timestamp").isNumber()) {
-                    socket.send(mensagens.codificar(mensagens.preparar(
-                            Mensagens.nova("resposta").put("status", "MENSAGEM_INVALIDA"))));
+                    mensagens.enviar(socket, Mensagens.nova("resposta").put("status", "MENSAGEM_INVALIDA"));
                     continue;
                 }
-                ObjectNode registro = dados.encontrar(pedido.path("id").asText());
-                coordenacao.recebeuCliente();
-                ObjectNode resposta;
-                if (registro != null) {
-                    resposta = mensagens.preparar((ObjectNode) registro.path("resposta"));
-                } else {
-                    resposta = responder(pedido);
-                    ObjectNode publicacao = null;
-                    if (pedido.path("tipo").asText().equals("publicar")
-                            && resposta.path("status").asText().equals("OK")) {
-                        publicacao = mensagens.preparar(pedido.deepCopy().put("tipo", "publicacao"));
+                synchronized (mensagens) {
+                    ObjectNode registro = dados.encontrar(pedido.path("id").asText());
+                    coordenacao.recebeuCliente();
+                    ObjectNode resposta;
+                    if (registro != null) {
+                        resposta = mensagens.preparar((ObjectNode) registro.path("resposta"));
+                    } else {
+                        resposta = responder(pedido);
+                        ObjectNode publicacao = null;
+                        if (pedido.path("tipo").asText().equals("publicar")
+                                && resposta.path("status").asText().equals("OK")) {
+                            publicacao = mensagens.preparar(pedido.deepCopy().put("tipo", "publicacao"));
+                        }
+                        resposta = mensagens.preparar(resposta);
+                        registro = Mensagens.JSON.createObjectNode().put("id", java.util.UUID.randomUUID().toString());
+                        registro.set("pedido", pedido);
+                        registro.set("resposta", resposta);
+                        if (publicacao != null) {
+                            registro.set("publicacao", publicacao);
+                        }
+                        dados.guardar(registro);
+                        if (publicacao != null) {
+                            publicador.sendMore(pedido.path("canal").asText() + "\u0000");
+                            publicador.send(mensagens.codificar(publicacao));
+                        }
                     }
-                    resposta = mensagens.preparar(resposta);
-                    registro = Mensagens.JSON.createObjectNode().put("id", java.util.UUID.randomUUID().toString());
-                    registro.set("pedido", pedido);
-                    registro.set("resposta", resposta);
-                    if (publicacao != null) {
-                        registro.set("publicacao", publicacao);
-                    }
-                    dados.guardar(registro);
-                    if (publicacao != null) {
-                        publicador.sendMore(pedido.path("canal").asText() + "\u0000");
-                        publicador.send(mensagens.codificar(publicacao));
-                    }
+                    socket.send(mensagens.codificar(resposta));
                 }
-                socket.send(mensagens.codificar(resposta));
             }
         }
     }
