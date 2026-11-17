@@ -35,7 +35,6 @@ with zmq.Context() as contexto:
                     temporario.replace(arquivo)
                 ativos[nome] = {"nome": nome, "rank": ranks[nome], "endereco": pedido["endereco"], "visto": agora}
                 resposta["rank"] = ranks[nome]
-                resposta["hora"] = time.time_ns() // 1_000_000
             elif tipo == "servidores":
                 resposta["servidores"] = [{k: v for k, v in dados.items() if k != "visto"} for dados in ativos.values()]
             else:

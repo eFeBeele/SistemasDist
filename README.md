@@ -51,3 +51,15 @@ A referência atende em REP na porta 5559. `registrar` e `heartbeat` recebem o n
 O servidor manda heartbeat a cada dez pedidos de clientes. Também manda a cada cinco segundos para não ser removido quando os bots estiverem ociosos. A referência remove da lista ativa quem ficar trinta segundos sem contato. Os intervalos usam relógio monotônico, para que os ajustes físicos não alterem a detecção de falha.
 
 O relógio físico é representado por um deslocamento sobre a hora do sistema; não exige permissão para alterar o relógio do container. Na resposta do heartbeat, o servidor usa a hora da referência mais metade do tempo da requisição. O Compose começa os servidores com desvios de -3000 e +4000 ms para mostrar o ajuste nos logs.
+
+## Parte 4
+
+A partir desta etapa, a referência deixa de fornecer `hora` no heartbeat. O timestamp obrigatório continua no cabeçalho, mas não é usado para ajustar os servidores.
+
+O algoritmo do valentão escolhe o maior rank disponível. Quem inicia uma eleição envia `eleicao` aos ranks maiores. Quem responde também inicia sua eleição. Sem resposta de um rank maior, o servidor se declara coordenador e publica nome e rank no tópico `servers`. Todos mantêm o nome do coordenador; quem perdeu o anúncio pode recebê-lo novamente, pois ele se repete a cada dois segundos.
+
+Cada servidor atende os demais em REP na porta 5560, numa thread própria. A coordenação consulta a lista da referência e verifica o coordenador periodicamente. Se ele não responder em um segundo, começa outra eleição. O atendimento dos bots continua em outra thread. Um novo servidor de rank maior inicia a eleição ao entrar.
+
+A cada quinze pedidos de clientes, o servidor sincroniza o relógio. O coordenador executa Berkeley: consulta os relógios dos servidores ativos, estima o atraso como metade do tempo de ida e volta, calcula a média dos desvios incluindo seu próprio desvio zero e envia a cada servidor a correção `média - desvio`. Ele também aplica a média ao próprio relógio. Servidores sem resposta não entram no cálculo. Os seguidores pedem `hora` ao coordenador e ajustam seu deslocamento. A sincronização também ocorre a cada cinco segundos para funcionar sem tráfego de clientes.
+
+Para testar a eleição, observe nos logs quem foi eleito e pare esse serviço com `docker compose stop servidor-1` ou `docker compose stop servidor-2`. O outro assume a coordenação. Use `docker compose start` com o mesmo nome para trazê-lo de volta. O rank depende da ordem do primeiro registro, portanto o servidor de maior número no nome não é necessariamente o coordenador.
