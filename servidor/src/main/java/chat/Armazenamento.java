@@ -65,4 +65,20 @@ public class Armazenamento {
         }
         return new ArrayList<>(canais);
     }
+
+    public synchronized List<JsonNode> historico(String canal) {
+        List<JsonNode> publicacoes = new ArrayList<>();
+        for (ObjectNode registro : registros.values()) {
+            JsonNode pedido = registro.path("pedido");
+            if (pedido.path("tipo").asText().equals("publicar")
+                    && pedido.path("canal").asText().equals(canal)
+                    && registro.path("resposta").path("status").asText().equals("OK")) {
+                publicacoes.add(pedido.deepCopy());
+            }
+        }
+        publicacoes.sort(java.util.Comparator
+                .comparingLong((JsonNode p) -> p.path("timestamp").asLong())
+                .thenComparing(p -> p.path("id").asText()));
+        return publicacoes;
+    }
 }

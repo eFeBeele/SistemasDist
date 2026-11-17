@@ -1,4 +1,9 @@
 services:
+  proxy:
+    build:
+      context: .
+      dockerfile: python/Dockerfile
+    command: ["python", "proxy.py"]
   broker:
     build:
       context: .
@@ -14,6 +19,7 @@ services:
       - ./dados/servidor-1:/dados
     depends_on:
       - broker
+      - proxy
   servidor-2:
     build:
       context: .
@@ -24,6 +30,7 @@ services:
       - ./dados/servidor-2:/dados
     depends_on:
       - broker
+      - proxy
   bot-1:
     build:
       context: .

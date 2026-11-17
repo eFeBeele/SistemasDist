@@ -38,6 +38,15 @@ public class Servidor {
                         status = "CANAL_EXISTENTE";
                     }
                 }
+                case "publicar" -> {
+                    if (!dados.canais().contains(canal)) {
+                        status = "CANAL_INEXISTENTE";
+                    } else if (pedido.path("texto").asText().isBlank()
+                            || pedido.path("texto").asText().length() > 280) {
+                        status = "TEXTO_INVALIDO";
+                    }
+                }
+                case "historico" -> resposta.set("publicacoes", Mensagens.JSON.valueToTree(dados.historico(canal)));
                 default -> status = "OPERACAO_INVALIDA";
             }
         }
@@ -45,9 +54,13 @@ public class Servidor {
     }
 
     public void executar() throws IOException {
-        try (ZContext contexto = new ZContext(); ZMQ.Socket socket = contexto.createSocket(SocketType.REP)) {
+        try (ZContext contexto = new ZContext();
+             ZMQ.Socket socket = contexto.createSocket(SocketType.REP);
+             ZMQ.Socket publicador = contexto.createSocket(SocketType.PUB)) {
             socket.setLinger(0);
             socket.connect(System.getenv().getOrDefault("BROKER", "tcp://broker:5556"));
+            publicador.setLinger(0);
+            publicador.connect(System.getenv().getOrDefault("PUBLICADOR", "tcp://proxy:5557"));
             while (!Thread.currentThread().isInterrupted()) {
                 byte[] bytes = socket.recv();
                 if (bytes == null) {
@@ -71,11 +84,21 @@ public class Servidor {
                 if (registro != null) {
                     resposta = mensagens.preparar((ObjectNode) registro.path("resposta"));
                 } else {
-                    resposta = mensagens.preparar(responder(pedido));
+                    resposta = responder(pedido);
+                    ObjectNode publicacao = null;
+                    if (pedido.path("tipo").asText().equals("publicar")
+                            && resposta.path("status").asText().equals("OK")) {
+                        publicacao = mensagens.preparar(pedido.deepCopy().put("tipo", "publicacao"));
+                    }
+                    resposta = mensagens.preparar(resposta);
                     registro = Mensagens.JSON.createObjectNode().put("id", pedido.path("id").asText());
                     registro.set("pedido", pedido);
                     registro.set("resposta", resposta);
                     dados.guardar(registro);
+                    if (publicacao != null) {
+                        publicador.sendMore(pedido.path("canal").asText() + "\u0000");
+                        publicador.send(mensagens.codificar(publicacao));
+                    }
                 }
                 socket.send(mensagens.codificar(resposta));
             }

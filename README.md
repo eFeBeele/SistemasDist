@@ -31,3 +31,13 @@ Cada servidor grava os pedidos e respostas em `dados/servidor-N/registros.jsonl`
 Nesta etapa, cada servidor conhece apenas seus próprios registros. A replicação entre eles entra na parte 5.
 
 Os logs mostram o conteúdo completo de cada mensagem enviada e recebida. Para acompanhar: `docker compose logs -f`.
+
+## Parte 2
+
+O proxy usa XSUB na porta 5557 e XPUB na 5558. O servidor recebe `publicar` com `canal` e `texto`, grava a interação, publica no canal e responde. O texto deve ter entre 1 e 280 caracteres e o canal precisa existir naquele servidor; os erros adicionais são `TEXTO_INVALIDO` e `CANAL_INEXISTENTE`.
+
+Cada publicação possui dois frames: o nome do canal terminado em byte zero e a mensagem em MessagePack. O byte zero impede que a inscrição em `jogos` também receba `jogos2`. Os bots imprimem o conteúdo completo, com canal, timestamp de envio e instante de recebimento.
+
+A cada rodada, o bot cria um canal se encontrar menos de cinco e assina mais um canal aleatório se tiver menos de três inscrições. Depois escolhe um canal, envia dez mensagens com intervalo de um segundo e consulta o histórico. Se o canal ainda não existir no servidor que recebeu o pedido, tenta criá-lo. Até a parte 5, os históricos e canais continuam locais a cada servidor.
+
+O pedido `historico`, com o campo `canal`, retorna a lista `publicacoes` ordenada por timestamp e identificador. PUB/SUB não confirma entrega: uma inscrição recente pode perder publicações, que continuam disponíveis no histórico persistido. A resposta `OK` confirma gravação e envio ao socket PUB, não o recebimento por todos os assinantes.
