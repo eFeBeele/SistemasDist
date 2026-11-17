@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
+import org.zeromq.ZMQ;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -35,6 +36,10 @@ public class Mensagens {
         long diferenca = hora - agora();
         ajuste += diferenca;
         System.out.println("[" + nome + "] Ajuste do relógio: " + diferenca + " ms");
+    }
+
+    public synchronized void enviar(ZMQ.Socket socket, ObjectNode mensagem) throws IOException {
+        socket.send(codificar(preparar(mensagem)));
     }
 
     public synchronized byte[] codificar(ObjectNode mensagem) throws IOException {

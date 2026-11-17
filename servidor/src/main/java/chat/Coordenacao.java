@@ -43,7 +43,7 @@ public class Coordenacao implements Runnable {
             socket.setReceiveTimeOut(1000);
             socket.setSendTimeOut(1000);
             socket.connect(endereco);
-            socket.send(mensagens.codificar(mensagens.preparar(pedido)));
+            mensagens.enviar(socket, pedido);
             byte[] bytes = socket.recv();
             return bytes == null ? null : mensagens.receber(bytes);
         } catch (IOException | RuntimeException erro) {
