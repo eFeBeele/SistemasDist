@@ -10,7 +10,7 @@ Com Docker e Docker Compose instalados, execute na pasta do projeto:
 docker compose up --build
 ```
 
-O Compose inicia dois servidores, dois bots e o broker. Os bots fazem login, consultam os canais e criam canais automaticamente. `docker compose up` também faz a primeira construção das imagens. Para encerrar, use `docker compose down`.
+O Compose inicia dois servidores, dois bots e o broker. Na versão final, também inicia o proxy e a referência. Os bots fazem login, criam canais e trocam mensagens automaticamente. `docker compose up` também faz a primeira construção das imagens. Para encerrar, use `docker compose down`.
 
 ## Parte 1
 
