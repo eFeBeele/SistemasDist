@@ -1,0 +1,44 @@
+services:
+  broker:
+    build:
+      context: .
+      dockerfile: python/Dockerfile
+    command: ["python", "broker.py"]
+  servidor-1:
+    build:
+      context: .
+      dockerfile: servidor/Dockerfile
+    environment:
+      NOME: servidor-1
+    volumes:
+      - ./dados/servidor-1:/dados
+    depends_on:
+      - broker
+  servidor-2:
+    build:
+      context: .
+      dockerfile: servidor/Dockerfile
+    environment:
+      NOME: servidor-2
+    volumes:
+      - ./dados/servidor-2:/dados
+    depends_on:
+      - broker
+  bot-1:
+    build:
+      context: .
+      dockerfile: python/Dockerfile
+    environment:
+      NOME: bot-1
+    depends_on:
+      - servidor-1
+      - servidor-2
+  bot-2:
+    build:
+      context: .
+      dockerfile: python/Dockerfile
+    environment:
+      NOME: bot-2
+    depends_on:
+      - servidor-1
+      - servidor-2
